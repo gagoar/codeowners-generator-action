@@ -1,0 +1,47 @@
+name: codeowners-generate-auto-check
+on: push
+    
+jobs:
+  trigger-codeowners-generate-auto:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_CONTEXT: ${{ toJson(github) }}
+    steps:
+    - name: Show Information
+      run: |
+        echo "This workflow run is triggered by ${{ github.event_name }} ."
+        echo " *****************************************************************************"
+        echo "$GITHUB_CONTEXT"
+        echo " *****************************************************************************"
+    - name: Hello world
+      run: |
+        echo Hello world $FIRST_NAME $middle_name $Last_Name!
+        echo "Hello ${{ github.event_name }}!"
+      env:
+        FIRST_NAME: Mona
+        middle_name: The
+        Last_Name: Octocat
+    - uses: actions/checkout@v1
+    - id: auth
+      uses: jnwng/github-app-installation-token-action@v1
+      with:
+        appId: ${{ secrets.APP_ID }}
+        installationId: ${{ secrets.INSTALLATION_ID }}
+        privateKey: ${{ secrets.PRIVATE_KEY }}
+    - id: codeowners_check
+      name: codeowners_check
+      uses: ./.github/actions/action
+      if: github.event_name == 'push'
+      with:
+        name: ${{ secrets.NAME }}
+        APP_ID: ${{ secrets.APP_ID }}
+        INSTALLATION_ID:  ${{ secrets.INSTALLATION_ID }}
+        GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+        action: "CREATE_CHECK"
+    - name: Print2
+      run: echo "${{ toJson(steps.codeowners_check.outputs) }}"
+    - name: Print
+      run: echo "${{ steps.codeowners_check.outputs.isValid }}"
+    - name: IsValid
+      if: steps.codeowners_check.outputs.isValid == 'false'
+      run: exit 1
