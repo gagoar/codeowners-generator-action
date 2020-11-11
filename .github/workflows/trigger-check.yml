@@ -18,8 +18,8 @@ jobs:
       uses: jnwng/github-app-installation-token-action@v1
       with:
         appId: ${{ secrets.APP_ID }}
-        installationId: ${{ secrets.APP_INSTALLATION_ID }}
-        privateKey: ${{ secrets.APP_PRIVATE_KEY }}
+        installationId: ${{ secrets.INSTALLATION_ID }}
+        privateKey: ${{ secrets.PRIVATE_KEY }}
     - id: codeowners_start
       name: codeowners_start
       uses: ./.github/actions/action
