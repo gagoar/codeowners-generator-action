@@ -1,10 +1,6 @@
 import { getInput } from '@actions/core';
 import { Octokit } from "@octokit/rest";
 import { generateCommand } from 'codeowners-generator';
-import simpleGit, {SimpleGit} from 'simple-git';
-const git: SimpleGit = simpleGit();
-
-const github = require('@actions/github');
 
 type statusType =
 | "in_progress" | "completed";
@@ -13,6 +9,7 @@ type conclusionType =
 
 const start = async () => {
     console.log("Creating check run...");
+    var context = JSON.parse(process.env.GITHUB_CONTEXT || "{}");
     const GITHUB_TOKEN = getInput('githubToken');
 
     const octokit = new Octokit({
@@ -23,9 +20,9 @@ const start = async () => {
 
     var payload = {
         "name": "CODEOWNERS Check",
-        "owner": github.context.payload.repository.owner.login,
-        "repo": github.context.payload.repository.name,
-        "head_sha": github.context.sha,
+        "owner": context.repository_owner,
+        "repo": context.event.repository.name,
+        "head_sha": context.sha,
         "status": status,
         "output": {
             "title": "Checking CODEOWNERS",
@@ -34,19 +31,18 @@ const start = async () => {
     };
 
     console.log("Payload: " + JSON.stringify(payload));
-    
+
     await octokit.checks.create(payload);
 };
 
 const finish = async (conclusion: conclusionType) => {
     console.log("Marking check run successful...");
+    var context = JSON.parse(process.env.GITHUB_CONTEXT || "{}");
     const GITHUB_TOKEN = getInput('githubToken');
- 
+
     const octokit = new Octokit({
         auth: GITHUB_TOKEN
     });
-
-    console.log("Github context: " + JSON.stringify(github.context));
 
     const status : statusType = "completed"
 
@@ -54,9 +50,9 @@ const finish = async (conclusion: conclusionType) => {
     switch(conclusion) {
         case "success":
             payload = {
-                "owner": github.context.payload.repository.owner.login,
-                "repo": github.context.payload.repository.name,
-                "check_run_id": github.context.payload.check_run.id,
+                "owner": context.repository_owner,
+                "repo": context.event.repository.name,
+                "check_run_id": context.event.check_run.id,
                 "status": status,
                 "output": {
                     "title": "CODEOWNERS Correct!",
@@ -67,9 +63,9 @@ const finish = async (conclusion: conclusionType) => {
             break;
         case "failure":
             payload = {
-                "owner": github.context.payload.repository.owner.login,
-                "repo": github.context.payload.repository.name,
-                "check_run_id": github.context.payload.check_run.id,
+                "owner": context.repository_owner,
+                "repo": context.event.repository.name,
+                "check_run_id": context.event.check_run.id,
                 "status": status,
                 "output": {
                     "title": "Missing CODEOWNERS Changes",
@@ -81,7 +77,7 @@ const finish = async (conclusion: conclusionType) => {
     }
 
     console.log("Payload: " + JSON.stringify(payload));
-    
+
     await octokit.checks.update(payload);
 };
 
@@ -93,15 +89,15 @@ const checkCodeOwners = async () => {
 
         console.log("Called codeowners - check if any change");
 
-        const result = await git.status();
+        // const result = await git.status();
 
-        if(result.isClean()) {
-            console.log("CODEOWNERS ok!");
-            await finish("success");
-        } else {
-            console.log("Need to fix codeowners");
-            await finish("failure");
-        }
+        // if(result.isClean()) {
+        //     console.log("CODEOWNERS ok!");
+        //     await finish("success");
+        // } else {
+        //     console.log("Need to fix codeowners");
+        //     await finish("failure");
+        // }
     } catch(e) {
         console.error(e);
     }
