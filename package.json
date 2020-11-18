@@ -100,7 +100,7 @@
     "@octokit/rest": "^18.0.9",
     "codeowners-generator": "^1.3.0",
     "debug": "4.2.0",
-    "simple-git": "^2.21.0"
+    "simple-git": "^2.22.0"
   },
   "devDependencies": {
     "@types/debug": "4.1.5",
