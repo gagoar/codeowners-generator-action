@@ -1,0 +1,20 @@
+name: Use Codeowners Generator > build test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  herald:
+    name: run codeowners generator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install packages
+        run: npm install
+      - name: Run codeowners generator
+        id: codeowners
+        uses: ./
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTION: 'START'

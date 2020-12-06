@@ -27,7 +27,7 @@ export interface Event {
   pull_request: PullRequest;
 
   repository: Repository;
-  check_run: Checkrun;
+  check_run?: Checkrun;
 }
 
 export type Status = 'in_progress' | 'completed';

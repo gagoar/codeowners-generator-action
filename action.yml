@@ -1,5 +1,5 @@
-name: "Main Action"
-description: "This is the main action"
+name: 'Main Action'
+description: 'This is the main action'
 branding:
   icon: arrow-up-right
   color: orange
@@ -7,14 +7,9 @@ inputs:
   GITHUB_TOKEN:
     description: 'Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}'
     required: true
-  NAME:
-    description: "A Name"
+  ACTION:
+    description: 'Which action to take'
     required: true
-outputs:
-  name: # some name
-    description: "Some name"
-  isValid: # some name
-    description: "Some name"
 runs:
-  using: "node12"
-  main: "dist/index.js"
+  using: 'node12'
+  main: 'dist/index.js'

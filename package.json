@@ -31,7 +31,8 @@
     ],
     "*.ts": [
       "eslint --fix",
-      "bash -c \"npm run build\""
+      "bash -c \"npm run build\"",
+      "bash -c \"yarn run build\""
     ]
   },
   "prettier": {
