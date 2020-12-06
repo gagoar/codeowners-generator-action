@@ -23,6 +23,10 @@ const actionsOutputMap: Record<Conclusion, ActionOutput> = {
 };
 
 export const handleCodeowners: ActionMapInput = async (client, { owner, repo, checkrunId }): Promise<void> => {
+  if (!checkrunId) {
+    throw new Error('No Checkrun ID');
+  }
+
   console.log('Checking codeowners...');
   // Check if CODEOWNERS file is correct by running codeowners-generator and ensuring no changes
   await generateCommand({ parent: {} });

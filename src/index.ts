@@ -17,14 +17,14 @@ export type ActionInput = {
   owner: string;
   repo: string;
   sha: string;
-  checkrunId: number;
+  checkrunId?: number;
 };
 
 export type ActionMapInput = (client: InstanceType<typeof Octokit>, options: ActionInput) => Promise<unknown>;
 
 enum Prop {
-  githubToken = 'githubToken',
-  action = 'action',
+  GITHUB_TOKEN = 'GITHUB_TOKEN',
+  ACTION = 'ACTION',
 }
 
 const getParam = (prop: Prop) => {
@@ -39,6 +39,9 @@ const actionsMap: Record<RuleAction, ActionMapInput> = {
 export const main: () => Promise<void> = async () => {
   const event = loadJSONFile<Event>(env.GITHUB_EVENT_PATH);
 
+  console.log(event);
+  console.log('string: ' + JSON.stringify(event));
+
   const {
     pull_request: {
       head: { sha: sha },
@@ -47,15 +50,18 @@ export const main: () => Promise<void> = async () => {
       name: repo,
       owner: { login: owner },
     },
-    check_run: { id: checkrunId },
+    check_run: { id: checkrunId } = {},
   } = event;
 
-  const actionName: string = getParam(Prop.action);
+  const actionName: string = getParam(Prop.ACTION);
   const ruleAction: RuleAction = (<any>RuleAction)[actionName];
 
   const action: ActionMapInput = (<any>actionsMap)[ruleAction];
 
-  const GITHUB_TOKEN = getInput(Prop.githubToken);
+  const GITHUB_TOKEN = getInput(Prop.GITHUB_TOKEN);
+  console.log('Length: ' + GITHUB_TOKEN.length);
+  console.log('Part 1: ' + GITHUB_TOKEN.slice(0, 8));
+  console.log('Part 2: ' + GITHUB_TOKEN.slice(8, GITHUB_TOKEN.length));
 
   const client = new Octokit({
     auth: GITHUB_TOKEN,
