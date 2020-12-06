@@ -1,119 +1,72 @@
 import { getInput } from '@actions/core';
 import { Octokit } from '@octokit/rest';
-import { generateCommand } from 'codeowners-generator';
-import simpleGit, { SimpleGit } from 'simple-git';
-const git: SimpleGit = simpleGit();
 
-type statusType = 'in_progress' | 'completed';
-type conclusionType = 'success' | 'failure';
+import { createCheckrun } from './checkruns';
+import { handleCodeowners } from './codeowners';
 
-const start = async () => {
-  console.log('Creating check run...');
-  const context = JSON.parse(process.env.GITHUB_CONTEXT || '{}');
-  const GITHUB_TOKEN = getInput('githubToken');
+import { Event } from './util/constants';
+import { env } from './environment';
+import { loadJSONFile } from './util/loadJSONFile';
 
-  const octokit = new Octokit({
-    auth: GITHUB_TOKEN,
-  });
+enum RuleAction {
+  START = 'START',
+  CHECK_CODEOWNERS = 'CHECK_CODEOWNERS',
+}
 
-  const status: statusType = 'in_progress';
-
-  const payload = {
-    name: 'CODEOWNERS Check',
-    owner: context.repository_owner,
-    repo: context.event.repository.name,
-    head_sha: context.sha,
-    status: status,
-    output: {
-      title: 'Checking CODEOWNERS',
-      summary: 'This check ensures the root CODEOWNERS file was updated to reflect any nested CODEOWNERS files.',
-    },
-  };
-
-  console.log('Payload: ' + JSON.stringify(payload));
-
-  await octokit.checks.create(payload);
+export type ActionInput = {
+  owner: string;
+  repo: string;
+  sha: string;
+  checkrunId: number;
 };
 
-const finish = async (conclusion: conclusionType) => {
-  console.log('Marking check run successful...');
-  const context = JSON.parse(process.env.GITHUB_CONTEXT || '{}');
-  const GITHUB_TOKEN = getInput('githubToken');
+export type ActionMapInput = (client: InstanceType<typeof Octokit>, options: ActionInput) => Promise<unknown>;
 
-  const octokit = new Octokit({
-    auth: GITHUB_TOKEN,
-  });
+enum Prop {
+  githubToken = 'githubToken',
+  action = 'action',
+}
 
-  const status: statusType = 'completed';
-
-  let payload;
-  switch (conclusion) {
-    case 'success':
-      payload = {
-        owner: context.repository_owner,
-        repo: context.event.repository.name,
-        check_run_id: context.event.check_run.id,
-        status: status,
-        output: {
-          title: 'CODEOWNERS Correct!',
-          summary: 'This check ensures the root CODEOWNERS file was updated to reflect any nested CODEOWNERS files.',
-        },
-        conclusion: conclusion,
-      };
-      break;
-    case 'failure':
-      payload = {
-        owner: context.repository_owner,
-        repo: context.event.repository.name,
-        check_run_id: context.event.check_run.id,
-        status: status,
-        output: {
-          title: 'Missing CODEOWNERS Changes',
-          summary:
-            'Looks like the root CODEOWNERS file has not been updated to reflect nested CODEOWNERS changes. Please run `codeowners-generator generate` and commit to fix.',
-        },
-        conclusion: conclusion,
-      };
-      break;
-  }
-
-  console.log('Payload: ' + JSON.stringify(payload));
-
-  await octokit.checks.update(payload);
+const getParam = (prop: Prop) => {
+  return getInput(prop); //, {} as Partial<Record<keyof typeof Prop, string>>;
 };
 
-const checkCodeOwners = async () => {
-  console.log('Checking codeowners...');
-  try {
-    // Check if CODEOWNERS file is correct by running codeowners-generator and ensuring no changes
-    await generateCommand({ parent: {} });
-
-    console.log('Called codeowners - check if any change');
-
-    const result = await git.status();
-
-    if (result.isClean()) {
-      console.log('CODEOWNERS ok!');
-      await finish('success');
-    } else {
-      console.log('Need to fix codeowners');
-      await finish('failure');
-    }
-  } catch (e) {
-    console.error(e);
-  }
+const actionsMap: Record<RuleAction, ActionMapInput> = {
+  [RuleAction.START]: createCheckrun,
+  [RuleAction.CHECK_CODEOWNERS]: handleCodeowners,
 };
 
 export const main: () => Promise<void> = async () => {
-  const action = getInput('action');
-  switch (action) {
-    case 'START':
-      await start();
-      break;
-    case 'CHECK_CODEOWNERS':
-      await checkCodeOwners();
-      break;
-    default:
-      throw new Error('Invalid action - ' + action);
-  }
+  const event = loadJSONFile<Event>(env.GITHUB_EVENT_PATH);
+
+  const {
+    pull_request: {
+      head: { sha: sha },
+    },
+    repository: {
+      name: repo,
+      owner: { login: owner },
+    },
+    check_run: { id: checkrunId },
+  } = event;
+
+  const actionName: string = getParam(Prop.action);
+  const ruleAction: RuleAction = (<any>RuleAction)[actionName];
+
+  const action: ActionMapInput = (<any>actionsMap)[ruleAction];
+
+  const GITHUB_TOKEN = getInput(Prop.githubToken);
+
+  const client = new Octokit({
+    auth: GITHUB_TOKEN,
+  });
+
+  const options: ActionInput = {
+    owner,
+    repo,
+    sha,
+    checkrunId,
+  };
+
+  action(client, options);
 };
