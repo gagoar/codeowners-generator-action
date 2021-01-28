@@ -1,8 +1,8 @@
 name: Use Codeowners Generator > build test
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
 
 jobs:
   herald:
